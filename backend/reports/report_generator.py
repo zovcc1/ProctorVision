@@ -65,7 +65,8 @@ class ReportGenerator:
     def save_event_frame(self, session: Session, event_type: str, frame) -> None:
         """Save a JPEG snapshot when an event starts. Called from app.py."""
         try:
-            filename = f"{session.id[:8]}_{event_type}_{int(time.time())}.jpg"
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            filename = f"Snapshot_{timestamp}_{event_type}_{session.id[:8]}.jpg"
             path = self._snapshots_dir / filename
             cv2.imwrite(str(path), frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
             session.captured_frames.append({
@@ -76,8 +77,9 @@ class ReportGenerator:
         except Exception as e:
             print(f"Frame capture error: {e}")
 
-    def generate_csv(self, session: Session) -> str:
-        timestamp = time.strftime('%Y%m%d_%H%M%S')
+    def generate_csv(self, session: Session, timestamp: str = None) -> str:
+        if not timestamp:
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
         filename = f"ProctorReport_{timestamp}_{session.id[:8]}.csv"
         filepath = self._reports_dir / filename
         with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
@@ -103,11 +105,12 @@ class ReportGenerator:
                 ])
         return str(filepath)
 
-    def generate_pdf(self, session: Session) -> str:
+    def generate_pdf(self, session: Session, timestamp: str = None) -> str:
         if not REPORTLAB_AVAILABLE:
             raise RuntimeError("reportlab not installed. Run: pip install reportlab")
 
-        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        if not timestamp:
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
         filename = f"ProctorReport_{timestamp}_{session.id[:8]}.pdf"
         filepath = self._reports_dir / filename
         doc = SimpleDocTemplate(

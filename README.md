@@ -27,6 +27,8 @@ The project follows a modular architecture:
 .
 ├── backend/
 │   ├── app.py                 # Flask + SocketIO Entry Point
+│   ├── assets/
+│   │   └── models/            # AI Models (MediaPipe, YOLO)
 │   ├── config/
 │   │   ├── config.json        # System Configuration & Thresholds
 │   │   └── config_manager.py  # Runtime Settings Loader
