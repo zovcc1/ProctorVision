@@ -54,6 +54,14 @@ def _stream_loop():
         result = session_manager.process_frame(frame)
         vision = result['vision']
         fusion = result['fusion']
+        alerts = fusion.get('alerts', [])
+
+        session = session_manager.get_session()
+        if session:
+            for alert in alerts:
+                if alert.get('type') == 'start':
+                    # Capture evidence snapshot
+                    report_generator.save_event_frame(session, alert['event'], frame)
 
         jpeg_quality = config.get('output.jpeg_quality', 60)
         annotated = visualizer.draw_overlays(frame, vision, fusion.get('attention_state', 'Attentive'))
@@ -123,8 +131,9 @@ def session_stop():
         _stream_thread.join(timeout=3.0)
 
     session = session_manager.stop_session()
-    csv_path = report_generator.generate_csv(session)
-    pdf_path = report_generator.generate_pdf(session)
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    csv_path = report_generator.generate_csv(session, timestamp=timestamp)
+    pdf_path = report_generator.generate_pdf(session, timestamp=timestamp)
 
     return jsonify({
         'session_id': session.id,
