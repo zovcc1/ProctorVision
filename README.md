@@ -1,89 +1,98 @@
 # ProctorVision Desktop Edition
 
-نظام مراقبة انتباه الطالب (Student Attention Monitoring System) — نسخة سطح المكتب المحلية بالكامل.
+ProctorVision is a comprehensive, local-first student attention monitoring system. It uses advanced computer vision to track gaze, detect objects (phones, additional persons), and monitor behavior during exams, all while ensuring 100% data privacy by processing everything on the local machine.
 
-## الميزات
+## Key Features
 
-- **معالجة محلية 100%**: لا تغادر أي بيانات الجهاز.
-- **رؤية حاسوبية متقدمة**: MediaPipe Face Mesh + YOLOv8 ONNX.
-- **بث مباشر**: عرض الفيديو مع تراكيب توضيحية (overlays) في الوقت الفعلي.
-- **مقاييس انتباه ذكية**: Attentive / Distracted / Warning.
-- **تنبيهات مباشرة**: كشف النظر بعيداً، الهاتف، شخص إضافي، تغطية الفم.
-- **تقارير تلقائية**: تصدير CSV + PDF عند إيقاف الجلسة.
-- **إعدادات قابلة للتعديل**: تغيير العتبات عبر واجهة المستخدم دون إعادة التشغيل.
+- **100% Local Processing**: No video or personal data ever leaves the device.
+- **Advanced Computer Vision**:
+  - **Gaze & Head Pose**: High-accuracy tracking using MediaPipe Face Mesh and Perspective-n-Point (PnP) algorithms.
+  - **Object Detection**: Real-time detection of mobile phones and additional persons via YOLOv8 (ONNX).
+  - **Behavioral Analysis**: Detects whispering (mouth covered) and attention states (Attentive, Distracted, Warning).
+- **Real-time Monitoring**: Low-latency video stream with AI-powered overlays.
+- **Detailed Reporting**: Generates comprehensive PDF and CSV reports at the end of each session, including an attention timeline chart.
+- **Configurable Thresholds**: Fine-tune detection sensitivity (e.g., yaw/pitch limits, alert tolerance) directly through the UI.
 
-## متطلبات التشغيل
+## System Architecture
 
-- Python 3.10+
-- Node.js 20+ (للبناء فقط)
-- كاميرا ويب (Webcam)
+The project follows a modular architecture:
 
-## تثبيت التبعيات
+- **Frontend**: A modern React-based dashboard (Vite + Tailwind CSS).
+- **Backend**: A multithreaded Flask + SocketIO server for real-time processing.
+- **Pipeline**: Dedicated modules for camera I/O, vision inference, and behavioral fusion.
 
-```bash
-# Python dependencies
-pip install -r backend/requirements.txt
+## Project Structure
+
+```
+.
+├── backend/
+│   ├── app.py                 # Flask + SocketIO Entry Point
+│   ├── config/
+│   │   ├── config.json        # System Configuration & Thresholds
+│   │   └── config_manager.py  # Runtime Settings Loader
+│   ├── pipeline/
+│   │   ├── camera.py          # Multithreaded Camera I/O
+│   │   ├── vision_pipeline.py # AI Inference (MediaPipe + YOLO)
+│   │   ├── fusion_engine.py   # Behavioral Logic & Alert Management
+│   │   └── visualizer.py      # Real-time Frame Annotation
+│   ├── session/
+│   │   └── session_manager.py # Session Lifecycle & State Persistence
+│   └── reports/
+│       └── report_generator.py # PDF/CSV Report Construction
+├── ui/                        # React Frontend Source
+├── storage/                   # Default location for generated reports
+├── start.py                   # Main Application Launcher
+└── README.md
 ```
 
-## تشغيل التطبيق
+## Getting Started
+
+### Prerequisites
+
+- **Python 3.10+**
+- **Node.js 20+** (only for building the UI from source)
+- A working webcam.
+
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd proctorvision
+   ```
+
+2. **Install Python dependencies**:
+   ```bash
+   pip install -r backend/requirements.txt
+   ```
+
+### Running the Application
+
+Launch the system using the provided launcher:
 
 ```bash
 python start.py
 ```
 
-يفتح المتصفح تلقائياً على `http://127.0.0.1:5000`.
+The application will automatically open your default browser at `http://127.0.0.1:5000`.
 
-## هيكل المشروع
+## Configuration
 
-```
-app/
-├── backend/
-│   ├── app.py                 # Flask + SocketIO server
-│   ├── config/
-│   │   ├── config.json        # Default settings
-│   │   └── config_manager.py  # Runtime config loader
-│   ├── pipeline/
-│   │   ├── camera.py          # Camera capture thread
-│   │   ├── vision_pipeline.py # MediaPipe + YOLOv8 inference
-│   │   └── fusion_engine.py   # Attention logic & alerts
-│   ├── session/
-│   │   └── session_manager.py # Session lifecycle
-│   └── reports/
-│       └── report_generator.py # CSV + PDF export
-├── frontend/ (built into dist/)
-│   ├── src/components/        # React components
-│   └── src/contexts/          # Session state management
-├── models/                    # YOLOv8 ONNX + MediaPipe task files
-├── reports_output/            # Generated reports
-├── dist/                      # Built React app
-└── start.py                   # Launcher script
-```
+You can customize the system behavior in `backend/config/config.json`. Key settings include:
 
-## ملاحظات النماذج
+- **Camera**: Resolution and device index.
+- **Thresholds**:
+  - `yaw_threshold` & `pitch_threshold`: Limits for looking away.
+  - `alert_tolerance_ms`: Time an event must persist before triggering an alert.
+  - `warning_duration_s`: Time in "Distracted" state before escalating to "Warning".
+- **Models**: Paths to the MediaPipe and YOLO ONNX models.
 
-يجب وضع النماذج في مجلد `models/`:
+## AI Models
 
-- `face_landmarker_v2_with_blendshapes.task` — من MediaPipe Tasks
-- `yolov8n.onnx` — نموذج YOLOv8n محوّل إلى ONNX
+The system requires the following models (pre-configured in `backend/config/config.json`):
+- **MediaPipe Face Landmarker**: `face_landmarker_v2_with_blendshapes.task`
+- **YOLOv8 Nano (ONNX)**: `yolov8n.onnx`
 
-يمكن تحميل `yolov8n.onnx` مسبقاً أو تحويله باستخدام:
-
-```bash
-pip install ultralytics
-yolo export model=yolov8n.pt format=onnx
-```
-
-## نقاط النهاية API
-
-- `GET /api/v1/status` — حالة الخادم والكاميرا
-- `POST /api/v1/session/start` — بدء جلسة
-- `POST /api/v1/session/stop` — إيقاف الجلسة + توليد التقارير
-- `GET /api/v1/session` — معلومات الجلسة الحالية
-- `GET /api/v1/settings` — قراءة الإعدادات
-- `PUT /api/v1/settings` — تحديث الإعدادات
-- `GET /api/v1/reports` — قائمة التقارير
-- `GET /api/v1/reports/<filename>` — تحميل تقرير
-
-## الترخيص
+## License
 
 GPL-3.0

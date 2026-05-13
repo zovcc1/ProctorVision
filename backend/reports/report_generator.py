@@ -77,7 +77,8 @@ class ReportGenerator:
             print(f"Frame capture error: {e}")
 
     def generate_csv(self, session: Session) -> str:
-        filename = f"session_{session.id[:8]}_{int(time.time())}.csv"
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        filename = f"ProctorReport_{timestamp}_{session.id[:8]}.csv"
         filepath = self._reports_dir / filename
         with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
@@ -106,7 +107,8 @@ class ReportGenerator:
         if not REPORTLAB_AVAILABLE:
             raise RuntimeError("reportlab not installed. Run: pip install reportlab")
 
-        filename = f"session_{session.id[:8]}_{int(time.time())}.pdf"
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        filename = f"ProctorReport_{timestamp}_{session.id[:8]}.pdf"
         filepath = self._reports_dir / filename
         doc = SimpleDocTemplate(
             str(filepath), pagesize=A4,
@@ -300,7 +302,8 @@ class ReportGenerator:
                 Patch(facecolor='red',    label='Warning'),
             ]
             ax.legend(handles=legend_elements, loc='upper right')
-            chart_path = self._reports_dir / f"chart_{session.id[:8]}_{int(time.time())}.png"
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            chart_path = self._reports_dir / f"chart_{timestamp}_{session.id[:8]}.png"
             plt.tight_layout()
             plt.savefig(str(chart_path), dpi=100)
             plt.close(fig)
