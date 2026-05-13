@@ -132,14 +132,12 @@ def session_stop():
 
     session = session_manager.stop_session()
     timestamp = time.strftime('%Y%m%d_%H%M%S')
-    csv_path = report_generator.generate_csv(session, timestamp=timestamp)
     pdf_path = report_generator.generate_pdf(session, timestamp=timestamp)
 
     return jsonify({
         'session_id': session.id,
         'duration_seconds': session.duration(),
         'records_count': len(session.records),
-        'csv_file': os.path.basename(csv_path),
         'pdf_file': os.path.basename(pdf_path),
     })
 
@@ -170,7 +168,7 @@ def settings_put():
 def list_reports():
     reports_dir = report_generator._reports_dir
     files = sorted(
-        [f.name for f in reports_dir.iterdir() if f.is_file()],
+        [f.name for f in reports_dir.iterdir() if f.is_file() and f.suffix.lower() == '.pdf'],
         reverse=True,
     )
     return jsonify({'reports': files})
