@@ -156,6 +156,7 @@ class ReportGenerator:
         story.append(Spacer(1, 0.5*cm))
 
         # ── Timeline chart ─────────────────────────────────────────────
+        chart_path = None
         if MATPLOTLIB_AVAILABLE and session.records:
             chart_path = self._generate_timeline_chart(session)
             if chart_path:
@@ -224,6 +225,24 @@ class ReportGenerator:
                 story.append(Spacer(1, 0.4*cm))
 
         doc.build(story)
+
+        # ── Cleanup ────────────────────────────────────────────────────
+        # Remove chart if it exists
+        if chart_path and Path(chart_path).exists():
+            try:
+                Path(chart_path).unlink()
+            except Exception as e:
+                print(f"Chart cleanup error: {e}")
+
+        # Remove snapshots
+        for cf in session.captured_frames:
+            try:
+                p = Path(cf['path'])
+                if p.exists():
+                    p.unlink()
+            except Exception as e:
+                print(f"Snapshot cleanup error: {e}")
+
         return str(filepath)
 
     # ------------------------------------------------------------------
