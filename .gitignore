@@ -101,6 +101,8 @@ htmlcov/
 .cache
 .pytest_cache/
 #project output folders
-debug_frames/
-models/
-reports_output/
+
+
+backend/assets/models
+storage/reports/
+storage/debug/

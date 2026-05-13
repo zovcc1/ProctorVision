@@ -5,10 +5,10 @@
     "buffer_size": 1
   },
   "mediapipe": {
-    "model_path": "models/face_landmarker_v2_with_blendshapes.task"
+    "model_path": "backend/assets/models/face_landmarker_v2_with_blendshapes.task"
   },
   "yolo": {
-    "model_path": "models/yolov8n.onnx",
+    "model_path": "backend/assets/models/yolov8n.onnx",
     "confidence": 0.35,
     "iou_threshold": 0.45,
     "classes": ["person", "cell phone"]
@@ -24,7 +24,7 @@
   },
   "output": {
     "jpeg_quality": 60,
-    "reports_dir": "reports_output"
+    "reports_dir": "storage/reports"
   },
   "target_fps": 20,
   "camera_intrinsics": {}
