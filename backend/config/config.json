@@ -1,0 +1,31 @@
+{
+  "camera": {
+    "index": 0,
+    "resolution": [1920, 1080],
+    "buffer_size": 1
+  },
+  "mediapipe": {
+    "model_path": "models/face_landmarker_v2_with_blendshapes.task"
+  },
+  "yolo": {
+    "model_path": "models/yolov8n.onnx",
+    "confidence": 0.35,
+    "iou_threshold": 0.45,
+    "classes": ["person", "cell phone"]
+  },
+  "thresholds": {
+    "yaw_threshold": 18,
+    "pitch_threshold": 15,
+    "mouth_open_ratio": 0.2,
+    "hand_face_proximity_factor": 1.5,
+    "alert_tolerance_ms": 500,
+    "warning_duration_s": 2,
+    "smoothing_alpha": 0.3
+  },
+  "output": {
+    "jpeg_quality": 60,
+    "reports_dir": "reports_output"
+  },
+  "target_fps": 20,
+  "camera_intrinsics": {}
+}
