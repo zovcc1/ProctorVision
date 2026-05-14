@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 
 interface Alert {
   type: string;
@@ -31,13 +31,16 @@ interface SessionState {
   settings: any;
   status: 'idle' | 'starting' | 'active' | 'stopping';
   error: string | null;
+  isCheatingDetected: boolean;
 }
 
 interface SessionContextType extends SessionState {
   startSession: () => Promise<void>;
-  stopSession: () => Promise<void>;
+  stopSession: (reason?: string) => Promise<void>;
   fetchSettings: () => Promise<void>;
   updateSettings: (data: any) => Promise<void>;
+  reportExternalEvent: (eventType: string, metadata?: any, keepalive?: boolean) => Promise<void>;
+  setCheatingDetected: (detected: boolean) => void;
   clearAlerts: () => void;
   dismissError: () => void;
   addFrame: (src: string) => void;
@@ -71,13 +74,35 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<any>({});
   const [status, setStatus] = useState<SessionState['status']>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [isCheatingDetected, setIsCheatingDetected] = useState(false);
+  const setCheatingDetected = useCallback((detected: boolean) => setIsCheatingDetected(detected), []);
   const statsRef = useRef<Stats>(defaultStats);
+  const focusTimerRef = useRef<number | null>(null);
+  const isActiveRef = useRef(isActive);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
 
   const API_BASE = '';
+
+  const reportExternalEvent = useCallback(async (eventType: string, metadata: any = {}, keepalive: boolean = false) => {
+    try {
+      await fetch(`${API_BASE}/api/v1/session/event`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_type: eventType, metadata }),
+        keepalive,
+      });
+    } catch (e) {
+      console.error('Failed to report external event:', e);
+    }
+  }, []);
 
   const startSession = useCallback(async () => {
     setStatus('starting');
     setError(null);
+    setIsCheatingDetected(false);
     try {
       const res = await fetch(`${API_BASE}/api/v1/session/start`, { method: 'POST' });
       const data = await res.json();
@@ -91,10 +116,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const stopSession = useCallback(async () => {
+  const stopSession = useCallback(async (reason?: string) => {
     setStatus('stopping');
+    if (focusTimerRef.current) {
+      window.clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = null;
+    }
     try {
-      const res = await fetch(`${API_BASE}/api/v1/session/stop`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/api/v1/session/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to stop session');
       setIsActive(false);
@@ -137,10 +170,61 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAlerts(prev => [alert, ...prev].slice(0, 50));
   }, []);
 
+  useEffect(() => {
+    const handleBlur = () => {
+      if (!isActiveRef.current) return;
+
+      const threshold = (settings?.security?.focus_loss_threshold_seconds || 2) * 1000;
+
+      if (focusTimerRef.current) window.clearTimeout(focusTimerRef.current);
+
+      focusTimerRef.current = window.setTimeout(async () => {
+        setIsCheatingDetected(true);
+        await reportExternalEvent('focus_loss', { duration_threshold: threshold });
+        await stopSession('Cheating Detected: Focus Loss');
+        focusTimerRef.current = null;
+      }, threshold);
+
+      reportExternalEvent('attempted_focus_loss', { timestamp: Date.now() });
+    };
+
+    const handleFocus = () => {
+      if (focusTimerRef.current) {
+        window.clearTimeout(focusTimerRef.current);
+        focusTimerRef.current = null;
+      }
+      if (isActiveRef.current) {
+        reportExternalEvent('focus');
+      }
+    };
+
+    const handleBeforeUnload = async () => {
+      if (isActiveRef.current) {
+        await reportExternalEvent('window_closed', { timestamp: Date.now() }, true);
+        fetch(`${API_BASE}/api/v1/session/stop`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: 'Browser Window Closed' }),
+          keepalive: true
+        });
+      }
+    };
+
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [reportExternalEvent, stopSession, settings]);
+
   return (
     <SessionContext.Provider value={{
-      sessionId, isActive, frameSrc, stats, alerts, settings, status, error,
-      startSession, stopSession, fetchSettings, updateSettings,
+      sessionId, isActive, frameSrc, stats, alerts, settings, status, error, isCheatingDetected,
+      startSession, stopSession, fetchSettings, updateSettings, reportExternalEvent, setCheatingDetected,
       clearAlerts, dismissError, addFrame, addStats, addAlert, setStatus, setError, setSessionId,
     }}>
       {children}

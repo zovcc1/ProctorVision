@@ -142,6 +142,14 @@ export function SettingsModal() {
               />
             </div>
             <div className="space-y-2">
+              <Label>Focus Loss Threshold (s)</Label>
+              <Input
+                type="number"
+                value={getNested('security.focus_loss_threshold_seconds', 2)}
+                onChange={e => setNested('security.focus_loss_threshold_seconds', Number(e.target.value))}
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Camera Resolution (WxH)</Label>
               <div className="flex gap-2">
                 <Input

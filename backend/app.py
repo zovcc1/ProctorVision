@@ -46,6 +46,22 @@ def _stream_loop():
     global _stream_running
     import cv2
     while _stream_running and session_manager.is_running():
+        # Backend-side focus loss enforcement
+        if session_manager._focus_lost_at:
+            threshold = config.get('security.focus_loss_threshold_seconds', 2)
+            if time.time() - session_manager._focus_lost_at > threshold:
+                session = session_manager.get_session()
+                session_id = session.id if session else None
+                session_manager.record_external_event('focus_loss', {'reason': 'backend_timeout'})
+                session_manager.stop_session(reason='Cheating Detected: Focus Loss (Backend Enforcement)')
+                if session_id:
+                    socketio.emit('session_terminated', {
+                        'reason': 'Focus loss threshold exceeded',
+                        'session_id': session_id
+                    }, room=session_id)
+                _stream_running = False
+                break
+
         frame = session_manager.read_frame()
         if frame is None:
             time.sleep(0.01)
@@ -125,12 +141,15 @@ def session_stop():
     if not session_manager.is_running():
         return jsonify({'error': 'No active session'}), 404
 
+    data = request.get_json(force=True, silent=True) or {}
+    reason = data.get('reason')
+
     global _stream_running
     _stream_running = False
     if _stream_thread:
         _stream_thread.join(timeout=3.0)
 
-    session = session_manager.stop_session()
+    session = session_manager.stop_session(reason=reason)
     timestamp = time.strftime('%Y%m%d_%H%M%S')
     pdf_path = report_generator.generate_pdf(session, timestamp=timestamp)
 
@@ -140,6 +159,22 @@ def session_stop():
         'records_count': len(session.records),
         'pdf_file': os.path.basename(pdf_path),
     })
+
+
+@app.route('/api/v1/session/event', methods=['POST'])
+def session_event():
+    if not session_manager.is_running():
+        return jsonify({'error': 'No active session'}), 404
+
+    data = request.get_json(force=True, silent=True) or {}
+    event_type = data.get('event_type')
+    metadata = data.get('metadata', {})
+
+    if not event_type:
+        return jsonify({'error': 'event_type is required'}), 400
+
+    session_manager.record_external_event(event_type, metadata)
+    return jsonify({'status': 'recorded'})
 
 
 @app.route('/api/v1/session', methods=['GET'])
