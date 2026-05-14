@@ -142,6 +142,22 @@ def session_stop():
     })
 
 
+@app.route('/api/v1/session/event', methods=['POST'])
+def session_event():
+    if not session_manager.is_running():
+        return jsonify({'error': 'No active session'}), 404
+
+    data = request.get_json(force=True, silent=True) or {}
+    event_type = data.get('event_type')
+    metadata = data.get('metadata', {})
+
+    if not event_type:
+        return jsonify({'error': 'event_type is required'}), 400
+
+    session_manager.record_external_event(event_type, metadata)
+    return jsonify({'status': 'recorded'})
+
+
 @app.route('/api/v1/session', methods=['GET'])
 def session_get():
     session = session_manager.get_session()

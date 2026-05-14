@@ -37,6 +37,9 @@ EVENT_META = {
     'phone_detected': {'label': 'Mobile Phone Detected',          'severity': 'High'},
     'extra_person':   {'label': 'Additional Person in Frame',     'severity': 'High'},
     'mouth_covered':  {'label': 'Mouth Covered (possible whispering)', 'severity': 'Medium'},
+    'focus_loss':     {'label': 'Tab/Window Focus Lost (Terminated)', 'severity': 'High'},
+    'attempted_focus_loss': {'label': 'Brief Focus Loss Attempt', 'severity': 'Medium'},
+    'window_closed':  {'label': 'Browser Window Closed',          'severity': 'High'},
 }
 
 SEVERITY_COLOR = {
@@ -165,7 +168,29 @@ class ReportGenerator:
                 story.append(Spacer(1, 0.5*cm))
 
         # ── Detected events ────────────────────────────────────────────
-        if session.events:
+        # Combine session events and external events
+        all_events = []
+        for ev in session.events:
+            all_events.append({
+                'type': ev.get('type'),
+                'start': ev.get('start'),
+                'end': ev.get('end'),
+                'duration': ev.get('duration'),
+                'source': 'vision'
+            })
+        for ev in session.external_events:
+            all_events.append({
+                'type': ev.get('type'),
+                'start': ev.get('timestamp'),
+                'end': ev.get('timestamp'),
+                'duration': 0,
+                'source': 'external'
+            })
+
+        # Sort by start time
+        all_events.sort(key=lambda x: x['start'])
+
+        if all_events:
             story.append(Paragraph("<b>Detected Events</b>", styles['Heading2']))
             story.append(Spacer(1, 0.2*cm))
 
@@ -175,7 +200,7 @@ class ReportGenerator:
                 frame_lookup.setdefault(cf['event'], []).append(cf['path'])
             frame_used: Dict[str, int] = {}  # track index per event type
 
-            for ev in session.events:
+            for ev in all_events:
                 etype = ev.get('type', '')
                 meta = EVENT_META.get(etype, {'label': etype, 'severity': 'Low'})
                 sev_color = SEVERITY_COLOR.get(meta['severity'], colors.grey)
@@ -253,24 +278,33 @@ class ReportGenerator:
         total_suspicious_s = round(
             session.duration() * (1 - stats.get('attentive_pct', 100) / 100), 1
         )
-        high_severity = [
+
+        vision_high = [
             e for e in session.events
             if EVENT_META.get(e.get('type', ''), {}).get('severity') == 'High'
         ]
+        external_high = [
+            e for e in session.external_events
+            if EVENT_META.get(e.get('type', ''), {}).get('severity') == 'High'
+        ]
+        high_severity_count = len(vision_high) + len(external_high)
+
         verdict = 'LOW RISK'
         verdict_color = colors.HexColor('#27ae60')
-        if len(session.events) >= 5 or total_suspicious_s > 30 or high_severity:
+        total_events_count = len(session.events) + len(session.external_events)
+
+        if total_events_count >= 5 or total_suspicious_s > 30 or high_severity_count > 0:
             verdict = 'HIGH RISK — Review Required'
             verdict_color = colors.HexColor('#c0392b')
-        elif len(session.events) >= 2 or total_suspicious_s > 10:
+        elif total_events_count >= 2 or total_suspicious_s > 10:
             verdict = 'MEDIUM RISK'
             verdict_color = colors.HexColor('#e67e22')
 
         lines = [
             f"Total suspicious time: {total_suspicious_s}s "
             f"({round(100 - stats.get('attentive_pct', 100), 1)}% of session)",
-            f"Total incidents: {len(session.events)}",
-            f"High-severity incidents: {len(high_severity)}",
+            f"Total incidents: {total_events_count}",
+            f"High-severity incidents: {high_severity_count}",
         ]
         body = '\n'.join(lines)
 

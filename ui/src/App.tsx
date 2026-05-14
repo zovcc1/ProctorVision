@@ -10,11 +10,36 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, X } from 'lucide-react';
 
 function AppContent() {
-  const { error, dismissError, isActive } = useSession();
+  const { error, dismissError, isActive, isCheatingDetected } = useSession();
   useSocket();
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col relative">
+      {isCheatingDetected && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="max-w-md w-full bg-red-950 border-2 border-red-500 rounded-2xl p-8 shadow-2xl text-center space-y-6 animate-in fade-in zoom-in duration-300">
+            <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-red-500/50">
+              <AlertCircle className="w-12 h-12 text-white" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-black tracking-tight text-white">CHEATING DETECTED</h2>
+              <p className="text-red-200 text-lg">
+                The session has been terminated because focus was lost for more than 2 seconds.
+              </p>
+            </div>
+            <div className="bg-black/40 rounded-xl p-4 text-sm text-red-300 border border-red-500/30">
+              This incident has been recorded in the final report and the administrator has been notified.
+            </div>
+            <Button
+              onClick={() => window.location.reload()}
+              className="w-full bg-white text-red-900 hover:bg-red-100 font-bold py-6 text-lg rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Acknowledge & Close
+            </Button>
+          </div>
+        </div>
+      )}
+
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

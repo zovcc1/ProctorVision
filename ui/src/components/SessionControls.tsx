@@ -22,7 +22,7 @@ export function SessionControls() {
       ) : (
         <Button
           size="lg"
-          onClick={stopSession}
+          onClick={() => stopSession()}
           disabled={isLoading}
           variant="destructive"
           className="gap-2 min-w-[160px]"

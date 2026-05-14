@@ -27,5 +27,9 @@
     "reports_dir": "storage/reports"
   },
   "target_fps": 20,
-  "camera_intrinsics": {}
+  "camera_intrinsics": {},
+  "security": {
+    "focus_loss_threshold_seconds": 2,
+    "auto_terminate_on_focus_loss": true
+  }
 }

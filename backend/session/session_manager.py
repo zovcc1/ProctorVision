@@ -13,6 +13,7 @@ class Session:
         self.end_time: Optional[float] = None
         self.records: List[Dict[str, Any]] = []
         self.events: List[Dict[str, Any]] = []
+        self.external_events: List[Dict[str, Any]] = []
         self.captured_frames: List[Dict[str, Any]] = []  # {event, timestamp, path}
         self.active = True
 
@@ -23,7 +24,7 @@ class Session:
             'end_time': self.end_time,
             'duration_seconds': self.duration(),
             'records_count': len(self.records),
-            'events_count': len(self.events),
+            'events_count': len(self.events) + len(self.external_events),
             'active': self.active,
         }
 
@@ -83,6 +84,16 @@ class SessionManager:
 
     def get_stats(self) -> Dict[str, Any]:
         return self._fusion.get_stats()
+
+    def record_external_event(self, event_type: str, metadata: Dict[str, Any] = None):
+        if not self._session or not self._session.active:
+            return
+        event = {
+            'type': event_type,
+            'timestamp': time.time(),
+            'metadata': metadata or {}
+        }
+        self._session.external_events.append(event)
 
     def add_alert_listener(self, callback):
         self._fusion.add_alert_listener(callback)
