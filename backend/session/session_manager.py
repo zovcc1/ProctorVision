@@ -13,8 +13,10 @@ class Session:
         self.end_time: Optional[float] = None
         self.records: List[Dict[str, Any]] = []
         self.events: List[Dict[str, Any]] = []
+        self.external_events: List[Dict[str, Any]] = []
         self.captured_frames: List[Dict[str, Any]] = []  # {event, timestamp, path}
         self.active = True
+        self.termination_reason: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -23,8 +25,9 @@ class Session:
             'end_time': self.end_time,
             'duration_seconds': self.duration(),
             'records_count': len(self.records),
-            'events_count': len(self.events),
+            'events_count': len(self.events) + len(self.external_events),
             'active': self.active,
+            'termination_reason': self.termination_reason,
         }
 
     def duration(self) -> float:
@@ -39,6 +42,7 @@ class SessionManager:
         self._vision = VisionPipeline()
         self._fusion = FusionEngine()
         self._running = False
+        self._focus_lost_at: Optional[float] = None
 
     def start_session(self) -> Optional[Session]:
         if self._session and self._session.active:
@@ -51,15 +55,17 @@ class SessionManager:
         self._running = True
         return self._session
 
-    def stop_session(self) -> Optional[Session]:
+    def stop_session(self, reason: str = None) -> Optional[Session]:
         if not self._session or not self._session.active:
             return None
         self._running = False
         self._camera.stop()
         self._session.active = False
         self._session.end_time = time.time()
+        self._session.termination_reason = reason
         self._session.records = self._fusion.get_records()
         self._session.events = self._extract_events_from_records()
+        self._focus_lost_at = None
         return self._session
 
     def get_session(self) -> Optional[Session]:
@@ -83,6 +89,23 @@ class SessionManager:
 
     def get_stats(self) -> Dict[str, Any]:
         return self._fusion.get_stats()
+
+    def record_external_event(self, event_type: str, metadata: Dict[str, Any] = None):
+        if not self._session or not self._session.active:
+            return
+
+        now = time.time()
+        if event_type == 'attempted_focus_loss':
+            self._focus_lost_at = now
+        elif event_type == 'focus':
+            self._focus_lost_at = None
+
+        event = {
+            'type': event_type,
+            'timestamp': now,
+            'metadata': metadata or {}
+        }
+        self._session.external_events.append(event)
 
     def add_alert_listener(self, callback):
         self._fusion.add_alert_listener(callback)

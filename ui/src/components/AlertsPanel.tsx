@@ -9,6 +9,9 @@ const eventIcons: Record<string, React.ReactNode> = {
   'extra_person': <Users className="w-4 h-4" />,
   'mouth_covered': <Hand className="w-4 h-4" />,
   'hand_near_face': <Hand className="w-4 h-4" />,
+  'focus_loss': <Smartphone className="w-4 h-4" />,
+  'attempted_focus_loss': <AlertTriangle className="w-4 h-4" />,
+  'window_closed': <X className="w-4 h-4" />,
 };
 
 const eventLabels: Record<string, string> = {
@@ -17,6 +20,9 @@ const eventLabels: Record<string, string> = {
   'extra_person': 'Extra Person',
   'mouth_covered': 'Mouth Covered',
   'hand_near_face': 'Hand Near Face',
+  'focus_loss': 'Session Terminated (Focus Lost)',
+  'attempted_focus_loss': 'Tab/Window Blurred',
+  'window_closed': 'Window Closed',
 };
 
 export function AlertsPanel() {

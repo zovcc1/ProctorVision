@@ -12,6 +12,9 @@ ProctorVision is a comprehensive, local-first student attention monitoring syste
 - **Real-time Monitoring**: Low-latency video stream with AI-powered overlays.
 - **Detailed Reporting**: Generates comprehensive PDF and CSV reports at the end of each session, including an attention timeline chart.
 - **Configurable Thresholds**: Fine-tune detection sensitivity (e.g., yaw/pitch limits, alert tolerance) directly through the UI.
+- **Focus Loss Detection**: Automatically detects when a student switches tabs or windows.
+  - **Auto-Termination**: Sessions are terminated if focus is lost for more than a configurable threshold (default: 2s).
+  - **Attempt Tracking**: Brief focus losses are recorded as minor incidents.
 
 ## System Architecture
 

@@ -65,4 +65,6 @@ export function useSocket() {
       socketRef.current = null;
     };
   }, [isActive, sessionId, addFrame, addStats, addAlert, setError]);
+
+  return { socket: socketRef.current };
 }
