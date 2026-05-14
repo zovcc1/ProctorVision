@@ -39,7 +39,7 @@ interface SessionContextType extends SessionState {
   stopSession: (reason?: string) => Promise<void>;
   fetchSettings: () => Promise<void>;
   updateSettings: (data: any) => Promise<void>;
-  reportExternalEvent: (eventType: string, metadata?: any) => Promise<void>;
+  reportExternalEvent: (eventType: string, metadata?: any, keepalive?: boolean) => Promise<void>;
   clearAlerts: () => void;
   dismissError: () => void;
   addFrame: (src: string) => void;
