@@ -25,7 +25,7 @@
     "mouth_open_ratio": 0.2,
     "hand_face_proximity_factor": 1.5,
     "alert_tolerance_ms": 500,
-    "warning_duration_s": 2,
+    "warning_duration_s": 1.5,
     "smoothing_alpha": 0.3
   },
   "output": {

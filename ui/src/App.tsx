@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, X } from 'lucide-react';
 
 function AppContent() {
-  const { error, dismissError, isActive, isCheatingDetected, settings, setCheatingDetected } = useSession();
+  const { error, dismissError, isActive, isCheatingDetected, settings, setCheatingDetected, clearLocalSession } = useSession();
   const { socket } = useSocket();
 
   useEffect(() => {
@@ -19,12 +19,13 @@ function AppContent() {
     const handleTerminated = (data: any) => {
       console.warn('Session terminated by server:', data.reason);
       setCheatingDetected(true);
+      clearLocalSession();
     };
     socket.on('session_terminated', handleTerminated);
     return () => {
       socket.off('session_terminated', handleTerminated);
     };
-  }, [socket]);
+  }, [socket, clearLocalSession, setCheatingDetected]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col relative">

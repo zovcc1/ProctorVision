@@ -41,6 +41,7 @@ interface SessionContextType extends SessionState {
   updateSettings: (data: any) => Promise<void>;
   reportExternalEvent: (eventType: string, metadata?: any, keepalive?: boolean) => Promise<void>;
   setCheatingDetected: (detected: boolean) => void;
+  clearLocalSession: () => void;
   clearAlerts: () => void;
   dismissError: () => void;
   addFrame: (src: string) => void;
@@ -156,6 +157,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setSettings(updated);
   }, []);
 
+  const clearLocalSession = useCallback(() => {
+    setIsActive(false);
+    setSessionId(null);
+    setStatus('idle');
+    setFrameSrc(null);
+  }, []);
+
   const clearAlerts = useCallback(() => setAlerts([]), []);
   const dismissError = useCallback(() => setError(null), []);
 
@@ -198,9 +206,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const handleBeforeUnload = async () => {
+    const handleBeforeUnload = () => {
       if (isActiveRef.current) {
-        await reportExternalEvent('window_closed', { timestamp: Date.now() }, true);
+        reportExternalEvent('window_closed', { timestamp: Date.now() }, true);
         fetch(`${API_BASE}/api/v1/session/stop`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -225,7 +233,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     <SessionContext.Provider value={{
       sessionId, isActive, frameSrc, stats, alerts, settings, status, error, isCheatingDetected,
       startSession, stopSession, fetchSettings, updateSettings, reportExternalEvent, setCheatingDetected,
-      clearAlerts, dismissError, addFrame, addStats, addAlert, setStatus, setError, setSessionId,
+      clearLocalSession, clearAlerts, dismissError, addFrame, addStats, addAlert, setStatus, setError, setSessionId,
     }}>
       {children}
     </SessionContext.Provider>

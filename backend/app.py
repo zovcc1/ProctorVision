@@ -53,12 +53,17 @@ def _stream_loop():
                 session = session_manager.get_session()
                 session_id = session.id if session else None
                 session_manager.record_external_event('focus_loss', {'reason': 'backend_timeout'})
-                session_manager.stop_session(reason='Cheating Detected: Focus Loss (Backend Enforcement)')
+                session = session_manager.stop_session(reason='Cheating Detected: Focus Loss (Backend Enforcement)')
                 if session_id:
                     socketio.emit('session_terminated', {
                         'reason': 'Focus loss threshold exceeded',
                         'session_id': session_id
                     }, room=session_id)
+                
+                # Generate report for autonomous termination
+                timestamp = time.strftime('%Y%m%d_%H%M%S')
+                report_generator.generate_pdf(session, timestamp=timestamp)
+
                 _stream_running = False
                 break
 
